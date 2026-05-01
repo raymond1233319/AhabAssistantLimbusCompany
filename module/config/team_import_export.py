@@ -36,9 +36,9 @@ def export_team_settings(team_num: int, file_path: str) -> bool:
         yaml = YAML()
         export_data = team_setting.model_dump()
 
-        # Exclude statistics fields and team_system from export
+        # Exclude statistics fields, and team_number from export
         stats_fields = ['total_mirror_time_hard', 'mirror_hard_count',
-                       'total_mirror_time_normal', 'mirror_normal_count', 'team_system']
+                       'total_mirror_time_normal', 'mirror_normal_count', 'team_number']
         for field in stats_fields:
             export_data.pop(field, None)
 
