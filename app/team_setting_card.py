@@ -9,7 +9,7 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-from qfluentwidgets import ExpandSettingCard, InfoBarPosition, PrimaryPushButton, PushButton, ScrollArea
+from qfluentwidgets import ExpandSettingCard, InfoBarPosition, LineEdit, PrimaryPushButton, PushButton, ScrollArea
 from qfluentwidgets import FluentIcon as FIF
 
 from app import *
@@ -96,12 +96,14 @@ class TeamSettingCard(QFrame):
         )
 
         # 编队码设置
-        self.use_team_code_checkbox = BaseCheckBox(self.tr("使用编队码"))
-        self.team_code_input = CheckBoxWithLineEdit(
-            self.tr("编队码"),
-            "team_code",
-            placeholder=self.tr("输入编队码")
+        self.use_team_code_checkbox = BaseCheckBox(
+            "use_team_code",
+            "./assets/app/status_effects/burn.png",  # 临时使用现有图标
+            self.tr("使用编队码"),
+            icon_size=30,
         )
+        self.team_code_input = LineEdit(self)
+        self.team_code_input.setPlaceholderText(self.tr("输入编队码"))
 
         self.sinner_YiSang = SinnerSelect(
             "YiSang",
@@ -306,10 +308,10 @@ class TeamSettingCard(QFrame):
         # 连接所有可能信号
         mediator.team_setting.connect(self.setting_team)
         mediator.sinner_be_selected.connect(self.refresh_sinner_order)
-        self.use_team_code_checkbox.stateChanged.connect(
+        self.use_team_code_checkbox.check_box.toggled.connect(
             self.on_use_team_code_changed
         )
-        self.team_code_input.lineEdit.textChanged.connect(
+        self.team_code_input.textChanged.connect(
             lambda text: self.on_team_code_changed(text)
         )
 
@@ -453,8 +455,8 @@ class TeamSettingCard(QFrame):
                         self.foolproof(getattr(self.team_setting, combobox))
 
         # 读取编队码设置
-        self.use_team_code_checkbox.setChecked(self.team_setting.use_team_code)
-        self.team_code_input.lineEdit.setText(self.team_setting.team_code)
+        self.use_team_code_checkbox.set_checked(self.team_setting.use_team_code)
+        self.team_code_input.setText(self.team_setting.team_code)
         self.team_code_input.setEnabled(self.team_setting.use_team_code)
 
     def foolproof(self, team_system):
@@ -470,7 +472,7 @@ class TeamSettingCard(QFrame):
 
     def on_use_team_code_changed(self):
         """处理使用编队码复选框状态变化"""
-        use_team_code = self.use_team_code_checkbox.isChecked()
+        use_team_code = self.use_team_code_checkbox.check_box.isChecked()
         self.team_setting.use_team_code = use_team_code
         self.team_code_input.setEnabled(use_team_code)
 
