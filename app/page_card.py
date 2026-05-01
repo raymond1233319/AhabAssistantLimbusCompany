@@ -34,7 +34,6 @@ from app.base_combination import (
     TextProgressBar,
 )
 from app.base_tools import BaseCheckBox
-from app.card.messagebox_custom import MessageBoxConfirm
 from app.common.ui_config import get_theme_aware_text_browser_qss
 from app.language_manager import SUPPORTED_GAME_LANG_NAME, LanguageManager
 from app.widget.custom_segmented_widget import CustomSegmentedWidget
