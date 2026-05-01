@@ -653,7 +653,7 @@ class PageMirror(PageCard):
         create_new_action.triggered.connect(self.new_team)
         menu.addAction(create_new_action)
 
-        create_from_file_action = Action(FIF.FOLDER_ADD, self.tr("从文件创建"))
+        create_from_file_action = Action(FIF.FOLDER_ADD, self.tr("从现有配置创建"))
         create_from_file_action.triggered.connect(self.create_team_from_file)
         menu.addAction(create_from_file_action)
 
@@ -662,7 +662,6 @@ class PageMirror(PageCard):
 
     def create_team_from_file(self):
         """Create a new team from an imported configuration file"""
-        from PySide6.QtWidgets import QInputDialog
         from qfluentwidgets import InfoBar, InfoBarPosition, MessageBox
 
         # Open file dialog to select YAML file
@@ -700,11 +699,17 @@ class PageMirror(PageCard):
             if not w.exec():
                 return
 
-        # Get available team slots
+        # Auto-increment to next available team slot
         existing_teams = sorted([int(k) for k in cfg.config.teams.keys()])
-        available_slots = [i for i in range(1, 21) if i not in existing_teams]
 
-        if not available_slots:
+        # Find the next available slot
+        team_num = None
+        for i in range(1, 21):
+            if i not in existing_teams:
+                team_num = i
+                break
+
+        if team_num is None:
             MessageBox(
                 self.tr("无可用队伍槽位"),
                 self.tr("已达到最大队伍数量（20个），无法创建新队伍。"),
@@ -712,40 +717,15 @@ class PageMirror(PageCard):
             ).exec()
             return
 
-        # Ask user to choose team number
-        team_num, ok = QInputDialog.getInt(
-            self,
-            self.tr("选择队伍编号"),
-            self.tr("请选择要创建的队伍编号（1-20）："),
-            available_slots[0],
-            1,
-            20,
-            1
-        )
-
-        if not ok:
-            return
-
-        # Check if team already exists and confirm overwrite
-        if team_num in existing_teams:
-            w = MessageBoxConfirm(
-                self.tr("队伍已存在"),
-                self.tr(f"队伍 {team_num} 已存在。是否覆盖现有设置？"),
-                self
-            )
-            if not w.exec():
-                return
-
         # Apply the imported settings
         try:
             apply_team_settings(team_num, team_setting, theme_pack_weight)
 
-            # Add to teams_be_select and teams_order if new team
-            if team_num not in existing_teams:
-                while len(cfg.config.teams_be_select) < team_num:
-                    cfg.config.teams_be_select.append(False)
-                while len(cfg.config.teams_order) < team_num:
-                    cfg.config.teams_order.append(0)
+            # Add to teams_be_select and teams_order
+            while len(cfg.config.teams_be_select) < team_num:
+                cfg.config.teams_be_select.append(False)
+            while len(cfg.config.teams_order) < team_num:
+                cfg.config.teams_order.append(0)
 
             # Refresh the UI
             self.get_setting()
