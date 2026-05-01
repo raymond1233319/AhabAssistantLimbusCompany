@@ -307,7 +307,7 @@ class TeamSettingCard(QFrame):
         mediator.team_setting.connect(self.setting_team)
         mediator.sinner_be_selected.connect(self.refresh_sinner_order)
         self.use_team_code_checkbox.stateChanged.connect(
-            lambda: self.on_use_team_code_changed()
+            self.on_use_team_code_changed
         )
         self.team_code_input.lineEdit.textChanged.connect(
             lambda text: self.on_team_code_changed(text)
@@ -474,23 +474,9 @@ class TeamSettingCard(QFrame):
         self.team_setting.use_team_code = use_team_code
         self.team_code_input.setEnabled(use_team_code)
 
-        # 保存到配置
-        team_key = f"{self.team_num}"
-        if team_key in cfg.config.teams:
-            cfg.config.teams[team_key].use_team_code = use_team_code
-            cfg.save()
-            log.debug(f"队伍 {self.team_num} 使用编队码设置已更新: {use_team_code}")
-
     def on_team_code_changed(self, text: str):
         """处理编队码文本变化"""
         self.team_setting.team_code = text
-
-        # 保存到配置
-        team_key = f"{self.team_num}"
-        if team_key in cfg.config.teams:
-            cfg.config.teams[team_key].team_code = text
-            cfg.save()
-            log.debug(f"队伍 {self.team_num} 编队码已更新")
 
     def cancel_team_setting(self):
         mediator.close_setting.emit()
