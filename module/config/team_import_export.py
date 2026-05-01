@@ -36,6 +36,12 @@ def export_team_settings(team_num: int, file_path: str) -> bool:
         yaml = YAML()
         export_data = team_setting.model_dump()
 
+        # Exclude statistics fields from export
+        stats_fields = ['total_mirror_time_hard', 'mirror_hard_count',
+                       'total_mirror_time_normal', 'mirror_normal_count']
+        for field in stats_fields:
+            export_data.pop(field, None)
+
         theme_pack_weight_path = theme_list.build_team_weight_path(team_num)
         if Path(theme_pack_weight_path).exists():
             with open(theme_pack_weight_path, 'r', encoding='utf-8') as f:
