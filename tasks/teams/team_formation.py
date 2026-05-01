@@ -1,5 +1,7 @@
 from time import sleep
 
+import pyperclip
+
 from module.automation import auto
 from module.config import cfg
 from module.decorator.decorator import begin_and_finish_time_log
@@ -213,3 +215,104 @@ def check_team():
         return True
     else:
         return False
+
+
+@begin_and_finish_time_log(task_name="加载编队码")
+def load_team_code_in_game(team_code: str) -> bool:
+    """在游戏中加载编队码
+
+    Args:
+        team_code: 编队码字符串
+
+    Returns:
+        成功返回 True，失败返回 False
+    """
+    # 验证当前在队伍选择界面
+    if not auto.find_element("mirror/road_to_mir/select_team_stars_assets.png"):
+        log.warning("未在队伍选择界面，跳过编队码加载")
+        return False
+
+    # 最多重试3次
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        log.info(f"尝试加载编队码 (第 {attempt}/{max_retries} 次): {team_code}")
+
+        # 截图
+        while auto.take_screenshot() is None:
+            continue
+
+        # 点击队伍代码按钮
+        if not auto.click_element("zh_cn/teams/team_code.png"):
+            log.warning("未找到队伍代码按钮")
+            sleep(1)
+            continue
+
+        sleep(0.5)
+
+        # 截图
+        while auto.take_screenshot() is None:
+            continue
+
+        # 查找并点击加载编队码按钮
+        if not auto.click_element("zh_cn/teams/load_team_code_button.png"):
+            log.warning("未找到加载编队码按钮")
+            sleep(1)
+            continue
+
+        sleep(0.5)
+
+        # 等待输入框出现
+        while auto.take_screenshot() is None:
+            continue
+
+        # 查找输入框
+        if not auto.find_element("zh_cn/teams/team_code_input_field.png"):
+            log.warning("未找到编队码输入框")
+            # 尝试点击取消按钮返回
+            auto.click_element("zh_cn/teams/team_code_cancel_button.png")
+            sleep(1)
+            continue
+
+        # 点击输入框
+        if not auto.click_element("zh_cn/teams/team_code_input_field.png"):
+            log.warning("无法点击编队码输入框")
+            auto.click_element("zh_cn/teams/team_code_cancel_button.png")
+            sleep(1)
+            continue
+
+        sleep(0.3)
+
+        # 清空输入框 (Ctrl+A 然后 Delete)
+        auto.key_press("ctrl+a")
+        sleep(0.1)
+        auto.key_press("delete")
+        sleep(0.1)
+
+        # 使用剪贴板粘贴编队码
+        pyperclip.copy(team_code)
+        auto.key_press("ctrl+v")
+        sleep(0.3)
+
+        # 点击确认按钮
+        if not auto.click_element("zh_cn/teams/team_code_confirm_button.png"):
+            log.warning("未找到确认按钮")
+            auto.click_element("zh_cn/teams/team_code_cancel_button.png")
+            sleep(1)
+            continue
+
+        sleep(1)
+
+        # 验证返回队伍选择界面
+        while auto.take_screenshot() is None:
+            continue
+
+        if auto.find_element("mirror/road_to_mir/select_team_stars_assets.png"):
+            log.info("编队码加载成功")
+            return True
+        else:
+            log.warning("未返回队伍选择界面，可能加载失败")
+            auto.click_element("zh_cn/teams/team_code_cancel_button.png")
+            sleep(1)
+
+    log.warning(f"加载编队码失败，已重试{max_retries}次: {team_code}")
+    return False
