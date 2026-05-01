@@ -795,10 +795,11 @@ class ThemePackSettingDialog(FramelessDialog):
 
     def _show_menu_upward(self, button, menu):
         """Show menu above the button instead of below"""
-        # Calculate position to show menu above button
+        # Anchor the menu to the button's global top-left corner and shift it
+        # upward by the menu height so the whole menu appears above the button.
         button_pos = button.mapToGlobal(button.rect().topLeft())
         menu_height = menu.sizeHint().height()
-        menu.exec(button_pos - menu.pos() - menu.rect().topLeft() + menu.rect().bottomLeft() - button.rect().bottomLeft())
+        menu.exec(button_pos.__class__(button_pos.x(), button_pos.y() - menu_height))
 
     def _on_preferred_threshold_changed(self, value: int):
         """处理优选阈值变化，只更新内存中的配置，不保存到文件"""
