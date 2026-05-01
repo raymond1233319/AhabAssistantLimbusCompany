@@ -685,8 +685,8 @@ class PageMirror(PageCard):
                 continue
             cfg.config.teams[f"{save_index}"] = cfg.config.teams[f"{index}"]
             del cfg.config.teams[f"{index}"]
-            theme_list.set_team_weight_config_from_team(save_index, int(index))
-            theme_list.delete_team_weight_config(int(index))
+            theme_list.set_team_weight_config_from_team(i, i + 1)
+            theme_list.delete_team_weight_config(i + 1)
             save_index += 1
 
         cfg.save()
