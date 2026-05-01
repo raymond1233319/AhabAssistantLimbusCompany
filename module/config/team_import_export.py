@@ -91,3 +91,21 @@ def import_team_settings(file_path: str, team_num: int) -> tuple[Optional[TeamSe
     except Exception as e:
         log.error(f"Failed to import team settings: {e}")
         return None, None, [str(e)]
+
+
+def apply_team_settings(team_num: int, team_setting: TeamSetting, theme_pack_weight: Optional[dict]) -> None:
+    """Apply imported team settings to configuration."""
+    cfg.config.teams[str(team_num)] = team_setting
+
+    if theme_pack_weight:
+        theme_pack_weight_path = Path(theme_list.build_team_weight_path(team_num))
+        theme_pack_weight_path.parent.mkdir(parents=True, exist_ok=True)
+
+        yaml = YAML()
+        with open(theme_pack_weight_path, 'w', encoding='utf-8') as f:
+            yaml.dump(theme_pack_weight, f)
+
+        log.info(f"Created/updated theme pack weight file for team {team_num}")
+
+    cfg.save()
+    log.info(f"Applied settings for team {team_num}")

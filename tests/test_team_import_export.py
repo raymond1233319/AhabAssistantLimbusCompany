@@ -3,8 +3,9 @@ from pathlib import Path
 import tempfile
 from unittest.mock import MagicMock, patch, mock_open
 from ruamel.yaml import YAML
-from module.config.team_import_export import generate_team_export_filename, export_team_settings
+from module.config.team_import_export import generate_team_export_filename, export_team_settings, apply_team_settings
 from module.config import cfg
+from module.config.config_typing import TeamSetting
 
 def test_generate_team_export_filename_with_remark_name():
     with patch('module.config.team_import_export.cfg') as mock_cfg:
@@ -207,3 +208,15 @@ def test_import_team_settings_with_theme_pack():
         assert theme_pack_weight["theme_pack_list"]["forgot"] == 1
     finally:
         Path(import_path).unlink()
+
+
+def test_apply_team_settings():
+    with patch('module.config.team_import_export.cfg') as mock_cfg:
+        mock_cfg.config.teams = {}
+        mock_cfg.save = MagicMock()
+
+        team_setting = TeamSetting(team_system=1, team_number=2)
+        apply_team_settings(2, team_setting, None)
+
+        assert "2" in mock_cfg.config.teams
+        mock_cfg.save.assert_called_once()
