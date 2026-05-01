@@ -1,10 +1,13 @@
 import datetime
 import re
 from pathlib import Path
+from typing import Optional
 
 from ruamel.yaml import YAML
+from pydantic import ValidationError
 
 from module.config import cfg, theme_list
+from module.config.config_typing import TeamSetting
 from module.logger import log
 
 
@@ -48,3 +51,43 @@ def export_team_settings(team_num: int, file_path: str) -> bool:
     except Exception as e:
         log.error(f"Failed to export team settings: {e}")
         return False
+
+
+def import_team_settings(file_path: str, team_num: int) -> tuple[Optional[TeamSetting], Optional[dict], list[str]]:
+    """Import team settings from YAML file.
+
+    Args:
+        file_path: Path to the YAML file to import
+        team_num: Team number (used for context, not validation)
+
+    Returns:
+        Tuple of (TeamSetting, theme_pack_weight, missing_fields)
+        - TeamSetting: Parsed team settings, or None if parsing failed
+        - theme_pack_weight: Custom theme pack weight dict if present, or None
+        - missing_fields: List of missing required fields, or empty list if all fields present
+    """
+    try:
+        yaml = YAML()
+        with open(file_path, 'r', encoding='utf-8') as f:
+            data = yaml.load(f)
+
+        if not data:
+            return None, None, ["File is empty"]
+
+        theme_pack_weight = data.pop('custom_theme_pack_weight', None)
+
+        try:
+            team_setting = TeamSetting(**data)
+            return team_setting, theme_pack_weight, []
+        except ValidationError as e:
+            missing_fields = [err['loc'][0] for err in e.errors() if err['type'] == 'missing']
+            if missing_fields:
+                # Try to create with defaults for missing fields
+                team_setting = TeamSetting(**data)
+                return team_setting, theme_pack_weight, missing_fields
+            else:
+                log.error(f"Validation error: {e}")
+                return None, None, [str(e)]
+    except Exception as e:
+        log.error(f"Failed to import team settings: {e}")
+        return None, None, [str(e)]
