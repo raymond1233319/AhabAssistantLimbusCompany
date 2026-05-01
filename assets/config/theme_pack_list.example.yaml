@@ -53,7 +53,6 @@ theme_pack_list:
   Wander: -5 # 提灯、乘客、蜈蚣、黑檀
   dusk: -5 # BunBun虫子
   compassion: -5 # 明日方舟联动
-  test: -5
 
 theme_pack_list_hard:
   20: 0 # 诺姆
