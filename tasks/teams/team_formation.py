@@ -242,7 +242,7 @@ def load_team_code_in_game(team_code: str) -> bool:
             continue
 
         # 点击队伍代码按钮
-        if not auto.click_element("zh_cn/teams/team_code.png"):
+        if not auto.click_element("teams/team_code.png"):
             log.warning("未找到队伍代码按钮")
             sleep(1)
             continue
