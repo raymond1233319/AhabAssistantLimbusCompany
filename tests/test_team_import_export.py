@@ -116,3 +116,94 @@ def test_export_team_settings_with_theme_pack():
         finally:
             Path(theme_pack_path).unlink()
             Path(export_path).unlink()
+
+
+def test_import_team_settings_with_minimal_fields():
+    """Test that import_team_settings handles minimal fields correctly using model_construct."""
+    from module.config.team_import_export import import_team_settings
+
+    # Create a temporary YAML file with minimal fields
+    # Since all TeamSetting fields have defaults, pydantic won't report missing fields
+    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
+        import_path = f.name
+        yaml = YAML()
+        # Only provide minimal fields
+        minimal_data = {
+            "team_system": 1,
+            "team_number": 2,
+            # Missing: shop_strategy, sinners_be_select, chosen_sinners, sinner_order, etc.
+            # But all these have defaults, so pydantic will use them
+        }
+        yaml.dump(minimal_data, f)
+
+    try:
+        team_setting, theme_pack_weight, missing_fields = import_team_settings(import_path, 2)
+
+        # Should return a valid TeamSetting object with defaults for missing fields
+        assert team_setting is not None
+        assert team_setting.team_system == 1
+        assert team_setting.team_number == 2
+
+        # Should have default values for fields not provided
+        assert team_setting.shop_strategy == 0  # default value
+        assert team_setting.sinners_be_select == 0  # default value
+        assert team_setting.chosen_sinners == [0] * 12  # default value
+
+        # Since all fields have defaults, missing_fields should be empty
+        assert missing_fields == []
+
+        # Should have no theme pack weight
+        assert theme_pack_weight is None
+    finally:
+        Path(import_path).unlink()
+
+
+def test_import_team_settings_with_theme_pack():
+    """Test that import_team_settings correctly extracts custom_theme_pack_weight."""
+    from module.config.team_import_export import import_team_settings
+
+    # Create a temporary YAML file with theme pack weight
+    with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.yaml') as f:
+        import_path = f.name
+        yaml = YAML()
+        data = {
+            "team_system": 0,
+            "team_number": 1,
+            "shop_strategy": 0,
+            "sinners_be_select": 0,
+            "chosen_sinners": [0] * 12,
+            "sinner_order": [0] * 12,
+            "system_burn": False,
+            "system_bleed": False,
+            "system_tremor": False,
+            "system_rupture": False,
+            "system_poise": False,
+            "system_sinking": False,
+            "system_charge": False,
+            "system_slash": False,
+            "remark_name": "Test Team",
+            "use_custom_theme_pack_weight": False,
+            "custom_theme_pack_weight": {
+                "preferred_thresholds": 1,
+                "theme_pack_list": {"forgot": 1, "gambl": 2}
+            }
+        }
+        yaml.dump(data, f)
+
+    try:
+        team_setting, theme_pack_weight, missing_fields = import_team_settings(import_path, 1)
+
+        # Should return a valid TeamSetting object
+        assert team_setting is not None
+        assert team_setting.team_number == 1
+        assert team_setting.remark_name == "Test Team"
+
+        # Should have no missing fields
+        assert missing_fields == []
+
+        # Should extract theme pack weight
+        assert theme_pack_weight is not None
+        assert theme_pack_weight["preferred_thresholds"] == 1
+        assert theme_pack_weight["theme_pack_list"]["forgot"] == 1
+    finally:
+        Path(import_path).unlink()

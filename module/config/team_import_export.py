@@ -82,8 +82,8 @@ def import_team_settings(file_path: str, team_num: int) -> tuple[Optional[TeamSe
         except ValidationError as e:
             missing_fields = [err['loc'][0] for err in e.errors() if err['type'] == 'missing']
             if missing_fields:
-                # Try to create with defaults for missing fields
-                team_setting = TeamSetting(**data)
+                # Create with defaults for missing fields using model_construct
+                team_setting = TeamSetting.model_construct(**data)
                 return team_setting, theme_pack_weight, missing_fields
             else:
                 log.error(f"Validation error: {e}")
