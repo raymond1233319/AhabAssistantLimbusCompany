@@ -10,7 +10,7 @@ from PySide6.QtGui import (
     QPainter,
     QTextDocument,
 )
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget, QFileDialog
 from qfluentwidgets import FluentIcon as FIF
 from qfluentwidgets import (
     PopUpAniStackedWidget,
@@ -32,10 +32,12 @@ from app.base_combination import (
     TextProgressBar,
 )
 from app.base_tools import BaseCheckBox
+from app.card.messagebox_custom import MessageBoxConfirm
 from app.common.ui_config import get_theme_aware_text_browser_qss
 from app.language_manager import SUPPORTED_GAME_LANG_NAME, LanguageManager
 from app.widget.custom_segmented_widget import CustomSegmentedWidget
 from module.config import TeamSetting, cfg, theme_list
+from module.config.team_import_export import apply_team_settings, import_team_settings
 from module.logger import log
 
 from .markdown_it_imgdiv import imgdiv_plugin, render_div_close, render_div_open
@@ -425,6 +427,10 @@ class PageMirror(PageCard):
         self.add_team_button.setMinimumWidth(200)
         self.add_team_button.clicked.connect(self.new_team)
 
+        self.create_from_file_button = TransparentToolButton(FIF.FOLDER_ADD, None)
+        self.create_from_file_button.setMinimumWidth(200)
+        self.create_from_file_button.clicked.connect(self.create_team_from_file)
+
         self.hard_mirror = BaseCheckBox(
             "hard_mirror",
             None,
@@ -513,6 +519,7 @@ class PageMirror(PageCard):
         self.vbox_general.addWidget(self.team)
 
         self.add_team.addWidget(self.add_team_button)
+        self.add_team.addWidget(self.create_from_file_button)
         self.vbox_general.addLayout(self.add_team)
 
         self.vbox_advanced.addWidget(self.hard_mirror)
@@ -641,6 +648,113 @@ class PageMirror(PageCard):
                 theme_list.create_team_weight_config(number)
                 cfg.save()
 
+    def create_team_from_file(self):
+        """Create a new team from an imported configuration file"""
+        from PySide6.QtWidgets import QInputDialog
+        from qfluentwidgets import InfoBar, InfoBarPosition, MessageBox
+
+        # Open file dialog to select YAML file
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            self.tr("选择队伍配置文件"),
+            "",
+            "YAML Files (*.yaml *.yml)"
+        )
+
+        if not file_path:
+            return
+
+        # Import team settings from file
+        team_setting, theme_pack_weight, missing_fields = import_team_settings(file_path, 1)
+
+        if team_setting is None:
+            MessageBox(
+                self.tr("导入失败"),
+                self.tr("无法读取配置文件，请检查文件格式是否正确。"),
+                self
+            ).exec()
+            return
+
+        # Show warning if fields are missing
+        if missing_fields:
+            missing_text = "\n- ".join(missing_fields)
+            w = MessageBox(
+                self.tr("缺少字段"),
+                self.tr(f"配置文件中缺少以下字段：\n- {missing_text}\n\n将使用默认值填充这些字段。是否继续？"),
+                self
+            )
+            w.yesButton.setText(self.tr("继续"))
+            w.cancelButton.setText(self.tr("取消"))
+            if not w.exec():
+                return
+
+        # Get available team slots
+        existing_teams = sorted([int(k) for k in cfg.config.teams.keys()])
+        available_slots = [i for i in range(1, 21) if i not in existing_teams]
+
+        if not available_slots:
+            MessageBox(
+                self.tr("无可用队伍槽位"),
+                self.tr("已达到最大队伍数量（20个），无法创建新队伍。"),
+                self
+            ).exec()
+            return
+
+        # Ask user to choose team number
+        team_num, ok = QInputDialog.getInt(
+            self,
+            self.tr("选择队伍编号"),
+            self.tr("请选择要创建的队伍编号（1-20）："),
+            available_slots[0],
+            1,
+            20,
+            1
+        )
+
+        if not ok:
+            return
+
+        # Check if team already exists and confirm overwrite
+        if team_num in existing_teams:
+            w = MessageBoxConfirm(
+                self.tr("队伍已存在"),
+                self.tr(f"队伍 {team_num} 已存在。是否覆盖现有设置？"),
+                self
+            )
+            if not w.exec():
+                return
+
+        # Apply the imported settings
+        try:
+            apply_team_settings(team_num, team_setting, theme_pack_weight)
+
+            # Add to teams_be_select and teams_order if new team
+            if team_num not in existing_teams:
+                while len(cfg.config.teams_be_select) < team_num:
+                    cfg.config.teams_be_select.append(False)
+                while len(cfg.config.teams_order) < team_num:
+                    cfg.config.teams_order.append(0)
+
+            # Refresh the UI
+            self.get_setting()
+
+            InfoBar.success(
+                title=self.tr("导入成功"),
+                content=self.tr(f"已成功从文件创建队伍 {team_num}"),
+                orient=Qt.Horizontal,
+                isClosable=True,
+                position=InfoBarPosition.TOP,
+                duration=2000,
+                parent=self
+            )
+        except Exception as e:
+            log.error(f"Failed to create team from file: {e}")
+            MessageBox(
+                self.tr("创建失败"),
+                self.tr(f"创建队伍时出错：{str(e)}"),
+                self
+            ).exec()
+
     def remove_team_card(self, target: str):
         try:
             team = self.findChild(MirrorTeamCombination, target)
@@ -685,8 +799,8 @@ class PageMirror(PageCard):
                 continue
             cfg.config.teams[f"{save_index}"] = cfg.config.teams[f"{index}"]
             del cfg.config.teams[f"{index}"]
-            theme_list.set_team_weight_config_from_team(i, i + 1)
-            theme_list.delete_team_weight_config(i + 1)
+            theme_list.set_team_weight_config_from_team(save_index, int(index))
+            theme_list.delete_team_weight_config(int(index))
             save_index += 1
 
         cfg.save()
@@ -723,6 +837,8 @@ class PageMirror(PageCard):
         self.not_skip_whitegossypium.retranslateUi()
         self.fight_to_last_man.retranslateUi()
         self.mirror_keyboard_navigation.retranslateUi()
+        self.add_team_button.setToolTip(self.tr("添加新队伍"))
+        self.create_from_file_button.setToolTip(self.tr("从文件创建队伍"))
         for child in self.findChildren(MirrorTeamCombination):
             child.retranslateUi()
 
