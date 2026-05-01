@@ -13,10 +13,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from qfluentwidgets import (
+    Action,
     BodyLabel,
+    DropDownPushButton,
+    FluentIcon as FIF,
     InfoBarPosition,
     PrimaryPushButton,
     PushButton,
+    RoundMenu,
     ScrollArea,
     SubtitleLabel,
     TitleLabel,
@@ -554,31 +558,43 @@ class ThemePackSettingDialog(FramelessDialog):
         self.button_widget = QWidget()
         self.button_widget.setObjectName("button_widget")
         self.button_layout = QHBoxLayout(self.button_widget)
-        self.button_layout.setContentsMargins(0, 10, 0, 10)
+        self.button_layout.setContentsMargins(20, 10, 20, 10)
+        self.button_layout.setSpacing(8)
 
-        self.reset_button = PushButton(self.tr("重置为默认"), self)
-        self.reset_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.reset_button.clicked.connect(self.reset_to_default)
+        # 批量操作下拉菜单按钮
+        self.batch_menu_button = DropDownPushButton(self.tr("批量操作"), self)
+        self.batch_menu_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.batch_menu = RoundMenu(parent=self)
 
-        self.set_to_global_button = PushButton(self.tr("拉取全局配置"), self)
-        self.set_to_global_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.set_to_global_button.clicked.connect(self.set_to_global)
-        self.set_to_global_button.setVisible(self.is_team_specific)
+        self.reset_action = Action(FIF.SYNC, self.tr("重置为默认"))
+        self.reset_action.triggered.connect(self.reset_to_default)
+        self.batch_menu.addAction(self.reset_action)
 
-        self.set_all_negative_button = PushButton(self.tr("全部设为 -5"), self)
-        self.set_all_negative_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
-        self.set_all_negative_button.clicked.connect(self.set_all_weights_negative)
+        self.set_to_global_action = Action(FIF.DOWNLOAD, self.tr("拉取全局配置"))
+        self.set_to_global_action.triggered.connect(self.set_to_global)
+        self.batch_menu.addAction(self.set_to_global_action)
 
-        self.export_button = PushButton(self.tr("导出权重"), self)
+        self.set_all_negative_action = Action(FIF.REMOVE, self.tr("全部设为 -5"))
+        self.set_all_negative_action.triggered.connect(self.set_all_weights_negative)
+        self.batch_menu.addAction(self.set_all_negative_action)
+
+        self.batch_menu_button.setMenu(self.batch_menu)
+
+        # Connect to show menu upward
+        self.batch_menu_button.clicked.connect(lambda: self._show_menu_upward(self.batch_menu_button, self.batch_menu))
+
+        # 导入导出按钮（仅队伍特定配置显示）
+        self.export_button = PushButton(FIF.UP, self.tr("导出"))
         self.export_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.export_button.clicked.connect(self.on_export_settings)
         self.export_button.setVisible(self.is_team_specific)
 
-        self.import_button = PushButton(self.tr("导入权重"), self)
+        self.import_button = PushButton(FIF.DOWN, self.tr("导入"))
         self.import_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.import_button.clicked.connect(self.on_import_settings)
         self.import_button.setVisible(self.is_team_specific)
 
+        # 主要操作按钮
         self.save_button = PrimaryPushButton(self.tr("保存并关闭"), self)
         self.save_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.save_button.clicked.connect(self.save_and_close)
@@ -587,15 +603,12 @@ class ThemePackSettingDialog(FramelessDialog):
         self.close_button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.close_button.clicked.connect(self.close)
 
-        self.button_layout.addStretch()
-        self.button_layout.addWidget(self.reset_button)
-        self.button_layout.addWidget(self.set_to_global_button)
-        self.button_layout.addWidget(self.set_all_negative_button)
+        self.button_layout.addWidget(self.batch_menu_button)
         self.button_layout.addWidget(self.export_button)
         self.button_layout.addWidget(self.import_button)
+        self.button_layout.addStretch()
         self.button_layout.addWidget(self.save_button)
         self.button_layout.addWidget(self.close_button)
-        self.button_layout.addStretch()
 
     def __init_layout(self):
         # 将组件添加到滚动布局
@@ -779,6 +792,13 @@ class ThemePackSettingDialog(FramelessDialog):
 
         # 标记有未保存的修改
         self._has_unsaved_changes = True
+
+    def _show_menu_upward(self, button, menu):
+        """Show menu above the button instead of below"""
+        # Calculate position to show menu above button
+        button_pos = button.mapToGlobal(button.rect().topLeft())
+        menu_height = menu.sizeHint().height()
+        menu.exec(button_pos - menu.pos() - menu.rect().topLeft() + menu.rect().bottomLeft() - button.rect().bottomLeft())
 
     def _on_preferred_threshold_changed(self, value: int):
         """处理优选阈值变化，只更新内存中的配置，不保存到文件"""
