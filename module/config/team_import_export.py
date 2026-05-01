@@ -1,13 +1,7 @@
 import datetime
 import re
-from pathlib import Path
-from typing import Optional
 
-from ruamel.yaml import YAML
-
-from module.config import cfg, theme_list
-from module.config.config_typing import TeamSetting
-from module.logger import log
+from module.config import cfg
 
 
 def generate_team_export_filename(team_num: int) -> str:

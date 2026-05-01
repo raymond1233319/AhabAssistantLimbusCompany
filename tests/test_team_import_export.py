@@ -8,17 +8,40 @@ def test_generate_team_export_filename_with_remark_name():
         mock_cfg.config.teams = {
             "1": MagicMock(remark_name="MyTeam")
         }
-        with patch('module.config.team_import_export.datetime') as mock_datetime:
-            mock_datetime.date.today.return_value.isoformat.return_value = "2026-05-01"
-            result = generate_team_export_filename(1)
-            assert result == "team_settings_MyTeam_2026-05-01.yaml"
+        result = generate_team_export_filename(1)
+        expected_date = datetime.date.today().isoformat()
+        assert result == f"team_settings_MyTeam_{expected_date}.yaml"
 
 def test_generate_team_export_filename_without_remark_name():
     with patch('module.config.team_import_export.cfg') as mock_cfg:
         mock_cfg.config.teams = {
             "1": MagicMock(remark_name=None)
         }
-        with patch('module.config.team_import_export.datetime') as mock_datetime:
-            mock_datetime.date.today.return_value.isoformat.return_value = "2026-05-01"
-            result = generate_team_export_filename(1)
-            assert result == "team_settings_team_1_2026-05-01.yaml"
+        result = generate_team_export_filename(1)
+        expected_date = datetime.date.today().isoformat()
+        assert result == f"team_settings_team_1_{expected_date}.yaml"
+
+def test_generate_team_export_filename_team_not_found():
+    with patch('module.config.team_import_export.cfg') as mock_cfg:
+        mock_cfg.config.teams = {}
+        result = generate_team_export_filename(1)
+        expected_date = datetime.date.today().isoformat()
+        assert result == f"team_settings_team_1_{expected_date}.yaml"
+
+def test_generate_team_export_filename_with_special_characters():
+    with patch('module.config.team_import_export.cfg') as mock_cfg:
+        mock_cfg.config.teams = {
+            "1": MagicMock(remark_name='Team<>:"/\\|?*Name')
+        }
+        result = generate_team_export_filename(1)
+        expected_date = datetime.date.today().isoformat()
+        assert result == f"team_settings_Team_________Name_{expected_date}.yaml"
+
+def test_generate_team_export_filename_with_empty_remark_name():
+    with patch('module.config.team_import_export.cfg') as mock_cfg:
+        mock_cfg.config.teams = {
+            "1": MagicMock(remark_name="")
+        }
+        result = generate_team_export_filename(1)
+        expected_date = datetime.date.today().isoformat()
+        assert result == f"team_settings_team_1_{expected_date}.yaml"
