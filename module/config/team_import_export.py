@@ -12,7 +12,7 @@ from module.logger import log
 
 
 def generate_team_export_filename(team_num: int) -> str:
-    """Generate export filename for team settings."""
+    """生成队伍设置导出文件名"""
     team_setting = cfg.config.teams.get(str(team_num))
     remark_name = team_setting.remark_name if team_setting else None
 
@@ -26,17 +26,17 @@ def generate_team_export_filename(team_num: int) -> str:
 
 
 def export_team_settings(team_num: int, file_path: str) -> bool:
-    """Export team settings to YAML file."""
+    """导出队伍设置到 YAML 文件"""
     try:
         team_setting = cfg.config.teams.get(str(team_num))
         if not team_setting:
-            log.error(f"Team {team_num} not found")
+            log.error(f"队伍 {team_num} 未找到")
             return False
 
         yaml = YAML()
         export_data = team_setting.model_dump()
 
-        # Exclude statistics fields, and team_number from export
+        # 从导出中排除统计字段和队伍编号
         stats_fields = ['total_mirror_time_hard', 'mirror_hard_count',
                        'total_mirror_time_normal', 'mirror_normal_count', 'team_number']
         for field in stats_fields:
@@ -52,25 +52,25 @@ def export_team_settings(team_num: int, file_path: str) -> bool:
         with open(file_path, 'w', encoding='utf-8') as f:
             yaml.dump(export_data, f)
 
-        log.info(f"Exported team {team_num} settings to {file_path}")
+        log.info(f"已导出队伍 {team_num} 设置到 {file_path}")
         return True
     except Exception as e:
-        log.error(f"Failed to export team settings: {e}")
+        log.error(f"导出队伍设置失败: {e}")
         return False
 
 
 def import_team_settings(file_path: str, team_num: int) -> tuple[Optional[TeamSetting], Optional[dict], list[str]]:
-    """Import team settings from YAML file.
+    """从 YAML 文件导入队伍设置
 
     Args:
-        file_path: Path to the YAML file to import
-        team_num: Team number (used for context, not validation)
+        file_path: 要导入的 YAML 文件路径
+        team_num: 队伍编号（用于上下文，不用于验证）
 
     Returns:
-        Tuple of (TeamSetting, theme_pack_weight, missing_fields)
-        - TeamSetting: Parsed team settings, or None if parsing failed
-        - theme_pack_weight: Custom theme pack weight dict if present, or None
-        - missing_fields: List of missing required fields, or empty list if all fields present
+        元组 (TeamSetting, theme_pack_weight, missing_fields)
+        - TeamSetting: 解析的队伍设置，如果解析失败则为 None
+        - theme_pack_weight: 自定义主题包权重字典（如果存在），否则为 None
+        - missing_fields: 缺失的必需字段列表，如果所有字段都存在则为空列表
     """
     try:
         yaml = YAML()
@@ -78,7 +78,7 @@ def import_team_settings(file_path: str, team_num: int) -> tuple[Optional[TeamSe
             data = yaml.load(f)
 
         if not data:
-            return None, None, ["File is empty"]
+            return None, None, ["文件为空"]
 
         theme_pack_weight = data.pop('custom_theme_pack_weight', None)
 
@@ -88,19 +88,19 @@ def import_team_settings(file_path: str, team_num: int) -> tuple[Optional[TeamSe
         except ValidationError as e:
             missing_fields = [err['loc'][0] for err in e.errors() if err['type'] == 'missing']
             if missing_fields:
-                # Create with defaults for missing fields using model_construct
+                # 使用 model_construct 为缺失字段创建默认值
                 team_setting = TeamSetting.model_construct(**data)
                 return team_setting, theme_pack_weight, missing_fields
             else:
-                log.error(f"Validation error: {e}")
+                log.error(f"验证错误: {e}")
                 return None, None, [str(e)]
     except Exception as e:
-        log.error(f"Failed to import team settings: {e}")
+        log.error(f"导入队伍设置失败: {e}")
         return None, None, [str(e)]
 
 
 def apply_team_settings(team_num: int, team_setting: TeamSetting, theme_pack_weight: Optional[dict]) -> None:
-    """Apply imported team settings to configuration."""
+    """应用导入的队伍设置到配置"""
     cfg.config.teams[str(team_num)] = team_setting
 
     if theme_pack_weight:
@@ -111,7 +111,7 @@ def apply_team_settings(team_num: int, team_setting: TeamSetting, theme_pack_wei
         with open(theme_pack_weight_path, 'w', encoding='utf-8') as f:
             yaml.dump(theme_pack_weight, f)
 
-        log.info(f"Created/updated theme pack weight file for team {team_num}")
+        log.info(f"已创建/更新队伍 {team_num} 的主题包权重文件")
 
     cfg.save()
-    log.info(f"Applied settings for team {team_num}")
+    log.info(f"已应用队伍 {team_num} 的设置")

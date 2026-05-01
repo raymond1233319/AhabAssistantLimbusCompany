@@ -9,14 +9,14 @@ from module.logger import log
 
 
 def generate_theme_pack_export_filename(team_num: int) -> str:
-    """Generate export filename for theme pack weight.
+    """生成主题包权重导出文件名
 
     Args:
-        team_num: Team number
+        team_num: 队伍编号
 
     Returns:
-        Filename in format: theme_pack_weight_team_{remark_name}_{date}.yaml
-        or theme_pack_weight_team_{team_num}_{date}.yaml if no remark_name
+        格式为 theme_pack_weight_team_{remark_name}_{date}.yaml 的文件名
+        如果没有备注名则为 theme_pack_weight_team_{team_num}_{date}.yaml
     """
     team_setting = cfg.config.teams.get(str(team_num))
     remark_name = team_setting.remark_name if team_setting else None
@@ -31,20 +31,20 @@ def generate_theme_pack_export_filename(team_num: int) -> str:
 
 
 def export_theme_pack_weight(team_num: int, file_path: str) -> bool:
-    """Export theme pack weight to YAML file.
+    """导出主题包权重到 YAML 文件
 
     Args:
-        team_num: Team number
-        file_path: Path to export the theme pack weight to
+        team_num: 队伍编号
+        file_path: 导出主题包权重的路径
 
     Returns:
-        True on success, False on failure
+        成功返回 True，失败返回 False
     """
     try:
         theme_pack_weight_path = theme_list.build_team_weight_path(team_num)
 
         if not Path(theme_pack_weight_path).exists():
-            log.error(f"Theme pack weight file not found for team {team_num}")
+            log.error(f"队伍 {team_num} 的主题包权重文件未找到")
             return False
 
         yaml = YAML()
@@ -52,28 +52,28 @@ def export_theme_pack_weight(team_num: int, file_path: str) -> bool:
             theme_pack_data = yaml.load(f)
 
         if not theme_pack_data:
-            log.error(f"Theme pack weight file is empty for team {team_num}")
+            log.error(f"队伍 {team_num} 的主题包权重文件为空")
             return False
 
         with open(file_path, 'w', encoding='utf-8') as f:
             yaml.dump(theme_pack_data, f)
 
-        log.info(f"Exported theme pack weight for team {team_num} to {file_path}")
+        log.info(f"已导出队伍 {team_num} 的主题包权重到 {file_path}")
         return True
     except Exception as e:
-        log.error(f"Failed to export theme pack weight: {e}")
+        log.error(f"导出主题包权重失败: {e}")
         return False
 
 
 def _deep_merge_dicts(existing: dict, import_data: dict) -> dict:
-    """Deep merge import_data into existing dictionary.
+    """深度合并字典，将 import_data 合并到 existing
 
     Args:
-        existing: Existing dictionary
-        import_data: Dictionary to merge in
+        existing: 现有字典
+        import_data: 要合并的字典
 
     Returns:
-        Merged dictionary
+        合并后的字典
     """
     result = existing.copy()
     for key, value in import_data.items():
@@ -85,27 +85,27 @@ def _deep_merge_dicts(existing: dict, import_data: dict) -> dict:
 
 
 def import_theme_pack_weight(file_path: str, team_num: int) -> bool:
-    """Import theme pack weight from YAML file.
+    """从 YAML 文件导入主题包权重
 
     Args:
-        file_path: Path to the YAML file to import
-        team_num: Team number (used for context)
+        file_path: 要导入的 YAML 文件路径
+        team_num: 队伍编号（用于上下文）
 
     Returns:
-        True on success, False on failure
+        成功返回 True，失败返回 False
     """
     try:
         yaml = YAML()
 
-        # Load import data
+        # 加载导入数据
         with open(file_path, 'r', encoding='utf-8') as f:
             import_data = yaml.load(f)
 
         if not import_data:
-            log.warning(f"Import file is empty for team {team_num}")
+            log.warning(f"队伍 {team_num} 的导入文件为空")
             return True
 
-        # Load existing theme pack weight or create empty dict
+        # 加载现有主题包权重或创建空字典
         theme_pack_weight_path = theme_list.build_team_weight_path(team_num)
         target_path = Path(theme_pack_weight_path)
 
@@ -117,22 +117,22 @@ def import_theme_pack_weight(file_path: str, team_num: int) -> bool:
         else:
             existing_data = {}
 
-        # Merge/replace entries from import
+        # 从导入中合并/替换条目
         if isinstance(import_data, dict):
             existing_data = _deep_merge_dicts(existing_data, import_data)
         else:
-            log.error(f"Import data is not a dictionary for team {team_num}")
+            log.error(f"队伍 {team_num} 的导入数据不是字典")
             return False
 
-        # Ensure parent directory exists
+        # 确保父目录存在
         target_path.parent.mkdir(parents=True, exist_ok=True)
 
-        # Save back to theme_pack_weight_team_{team_num}.yaml
+        # 保存回 theme_pack_weight_team_{team_num}.yaml
         with open(theme_pack_weight_path, 'w', encoding='utf-8') as f:
             yaml.dump(existing_data, f)
 
-        log.info(f"Imported theme pack weight for team {team_num} from {file_path}")
+        log.info(f"已从 {file_path} 导入队伍 {team_num} 的主题包权重")
         return True
     except Exception as e:
-        log.error(f"Failed to import theme pack weight: {e}")
+        log.error(f"导入主题包权重失败: {e}")
         return False
