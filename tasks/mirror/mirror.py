@@ -903,7 +903,6 @@ class Mirror:
         # 加载编队码（如果启用）
         team_setting = cfg.config.teams.get(str(self.team_order))
         if team_setting and team_setting.use_team_code and team_setting.team_code:
-            log.info(f"队伍 {self.team_order} 启用了编队码，开始加载...")
             if not load_team_code_in_game(team_setting.team_code):
                 log.warning(f"编队码加载失败，继续使用当前队伍配置")
         loop_count = 30

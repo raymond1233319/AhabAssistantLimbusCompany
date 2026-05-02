@@ -232,17 +232,13 @@ def load_team_code_in_game(team_code: str) -> bool:
 
     # 最多重试3次
     max_retries = 3
-    for attempt in range(1, max_retries + 1):
+    for _ in range(1, max_retries + 1):
         # 截图
         while auto.take_screenshot() is None:
             continue
 
         # 点击队伍代码按钮
-        if not auto.click_element("teams/team_code_assets.png"):
-            log.warning("未找到队伍代码按钮")
-            sleep(1)
-            continue
-
+        auto.click_element("teams/team_code_assets.png")
         sleep(1)
 
         # 截图
@@ -250,10 +246,7 @@ def load_team_code_in_game(team_code: str) -> bool:
             continue
 
         # 查找并点击加载编队码按钮
-        if not auto.click_element("teams/load_team_code_button_assets.png"):
-            log.warning("未找到加载编队码按钮")
-            sleep(1)
-            continue
+        auto.click_element("teams/load_team_code_button_assets.png")
 
         sleep(1)
 
@@ -272,32 +265,24 @@ def load_team_code_in_game(team_code: str) -> bool:
 
         # 使用 input_text(text) 直接输入编队码
         auto.input_text(team_code)
-        sleep(1)  # 等待输入完成
-        
+        sleep(0.5)  # 等待输入完成
+
         # 点击确认按钮，最多重试 3 次
-        confirm_clicked = False
         for _ in range(3):
             if auto.click_element("teams/team_code_confirm_button_assets.png"):
-                confirm_clicked = True
-            sleep(0.3)
-        if not confirm_clicked:
-            log.warning("未找到确认按钮")
-            auto.click_element("teams/team_code_cancel_button_assets.png")
-            sleep(1)
-            continue
-
-        sleep(1)
+                sleep(1)
+                while auto.take_screenshot() is None:
+                    continue
+            else:
+                break
 
         # 验证返回队伍选择界面
-        while auto.take_screenshot() is None:
-            continue
-
-        if auto.find_element("mirror/road_to_mir/select_team_confirm_assets.png"):
+        if auto.find_element("teams/team_code_assets.png"):
             return True
         else:
-            log.warning("未返回队伍选择界面，可能加载失败")
             auto.click_element("teams/team_code_cancel_button_assets.png")
             sleep(1)
-
+        
+    auto.mouse_click(100, 100)  # 点击左上角关闭
     log.warning(f"加载编队码失败，已重试{max_retries}次: {team_code}")
     return False
