@@ -1,7 +1,5 @@
 from time import sleep
 
-import pyperclip
-
 from module.automation import auto
 from module.config import cfg
 from module.decorator.decorator import begin_and_finish_time_log
@@ -235,8 +233,6 @@ def load_team_code_in_game(team_code: str) -> bool:
     # 最多重试3次
     max_retries = 3
     for attempt in range(1, max_retries + 1):
-        log.info(f"尝试加载编队码 (第 {attempt}/{max_retries} 次): {team_code}")
-
         # 截图
         while auto.take_screenshot() is None:
             continue
@@ -247,7 +243,7 @@ def load_team_code_in_game(team_code: str) -> bool:
             sleep(1)
             continue
 
-        sleep(0.5)
+        sleep(1)
 
         # 截图
         while auto.take_screenshot() is None:
@@ -259,7 +255,7 @@ def load_team_code_in_game(team_code: str) -> bool:
             sleep(1)
             continue
 
-        sleep(0.5)
+        sleep(1)
 
         # 等待输入框出现
         while auto.take_screenshot() is None:
@@ -273,32 +269,18 @@ def load_team_code_in_game(team_code: str) -> bool:
             sleep(1)
             continue
 
-        # 点击输入框
-        if not auto.click_element("teams/team_code_input_field_assets.png"):
-            log.warning("无法点击编队码输入框")
-            auto.click_element("teams/team_code_cancel_button_assets.png")
-            sleep(1)
-            continue
 
-        sleep(0.3)
-
-        # 清空输入框 (Ctrl+A 然后 Delete)
-        auto.key_down("ctrl")
-        auto.key_press("a")
-        auto.key_up("ctrl")
-        sleep(0.1)
-        auto.key_press("delete")
-        sleep(0.1)
-
-        # 使用剪贴板粘贴编队码
-        pyperclip.copy(team_code)
-        auto.key_down("ctrl")
-        auto.key_press("v")
-        auto.key_up("ctrl")
-        sleep(0.3)
-
-        # 点击确认按钮
-        if not auto.click_element("teams/team_code_confirm_button_assets.png"):
+        # 使用 input_text(text) 直接输入编队码
+        auto.input_text(team_code)
+        sleep(1)  # 等待输入完成
+        
+        # 点击确认按钮，最多重试 3 次
+        confirm_clicked = False
+        for _ in range(3):
+            if auto.click_element("teams/team_code_confirm_button_assets.png"):
+                confirm_clicked = True
+            sleep(0.3)
+        if not confirm_clicked:
             log.warning("未找到确认按钮")
             auto.click_element("teams/team_code_cancel_button_assets.png")
             sleep(1)
@@ -311,7 +293,6 @@ def load_team_code_in_game(team_code: str) -> bool:
             continue
 
         if auto.find_element("mirror/road_to_mir/select_team_confirm_assets.png"):
-            log.info("编队码加载成功")
             return True
         else:
             log.warning("未返回队伍选择界面，可能加载失败")
