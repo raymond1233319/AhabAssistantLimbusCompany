@@ -765,11 +765,6 @@ class CustomizeSettingsModule(QFrame):
         self.team_code_input.setObjectName("team_code_input")
         self.team_code_input.setPlaceholderText(self.tr("输入编队码"))
         self.team_code_input.setMaximumWidth(400)
-        self.team_code_input.textChanged.connect(self._on_team_code_changed)
-
-    def _on_team_code_changed(self, text):
-        """编队码输入变化时触发"""
-        mediator.team_setting.emit({"team_code": text})
 
     def __init_layout(self):
         self.first_line.addWidget(self.do_not_heal)
