@@ -63,6 +63,8 @@ resonate_with_Ahab: False # 是否播放亚哈语录
 experimental_auto_lang: True # 是否自动修改语言
 experimental_keep_screen_awake: False # 运行期间阻止系统与显示器休眠，任务结束自动恢复
 
+
+
 # 模拟器设置
 simulator: False # 是否使用模拟器
 simulator_type: 0 # 0:mumu , 10:其他 。TODO:蓝迭 , 雷电 , 夜神 , 逍遥
@@ -139,7 +141,7 @@ mirror_keyboard_navigation: False # 使用键盘进行镜牢寻路
 
 # 队伍设置
 teams:
-  "1":
+  '1':
     team_system: 0 # 队伍使用的体系
     team_number: 1 # 使用的队伍序号
     shop_strategy: 0 # 商店策略
